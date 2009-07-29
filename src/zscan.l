@@ -34,10 +34,10 @@
 #include "fuzz.h"
 #include "symbol.h"
 #include <string.h>
-#include <unistd.h>
 
 PRIVATE int token;
 PRIVATE int lookup(int v);
+PRIVATE int lookup_name(char* name, int v);
 PRIVATE void get_string(int);
 PRIVATE void end_line(void);
 
@@ -81,9 +81,8 @@ PUBLIC int yywrap(void) { return 1; }
 
 name				[A-Za-z]([A-Za-z0-9]|\\_)*
 number				[0-9]+
-box				(axdef|gendef|schema|zed|syntax)
 decor				(['!?]|_[0-9])+
-
+UB 				[\200-\277] 
 %%
 
 %				{ BEGIN COMMENT; }
@@ -92,38 +91,38 @@ decor				(['!?]|_[0-9])+
 <SKIP,PROSE>"\\"		;
 <SKIP,PROSE>[^%\\\n]+		;
 
-<PROSE>"\\begin{"{box}"}"	{ math_mode(); return (lookup(0)); }
-<MATH>"\\end{"{box}"}"		{ prose_mode(); return (lookup(0)); }
-<SKIP>"\\end{"{box}"}"		{ prose_mode(); }
+<PROSE>"\\begin{code}"		{ math_mode();  }
+<MATH>"\\end{code}"		{ prose_mode(); }
+<SKIP>"\\end{code}"		{ prose_mode(); }
 
-<MATH>("\\\\"|"\\also")		{ saved_line = line_count; return NL; }
-<MATH>[.,]/[ \t\n]*("\\end{"{box}"}"|\\also)  ;
-<MATH>[&~"]			;
-<MATH>"{}"			;
-<MATH>\\[;:, !]			;
-<MATH>\\t([0-9]+|\{[0-9]+\})	{
-	if (state != STARTUP && state != NEWLINE && state != SKIPPING)
-		yyerror("Tab command not at start of line"); }
-<MATH>[@|()\[\]{}.=;:,/^]	return *yytext;
+<MATH>[@|()\[\].=;:,/^]		return *yytext;
 <MATH>\\_			return DUMMY;
 <MATH>::=			return COCOEQ;
-<MATH>"\\{"			return LBRACE;
-<MATH>"\\}"			return RBRACE;
-<MATH>{name}/({decor})?[ \t\n]+({name}|{number}) {
-	if (! in_dir) yyerror("Adjacent names - possibly missing ~");
-	return lookup(WORD); }
-<MATH>\\#			|
+<MATH>"{"			return LBRACE;
+<MATH>"}"			return RBRACE;
+<MATH>"↛"			return lookup_name("\\pfun",WORD);
+<MATH>"ℤ"			return lookup_name("\\num",WORD);
+<MATH>"ℕ"			return lookup_name("\\nat",WORD);
+<MATH>"axdef"			return AXDEF_TOK;
+<MATH>"gendef"			return GENDEF_TOK;
+<MATH>"schema"			return SCHEMA_TOK;
+<MATH>"zed"			return ZED_TOK;
+<MATH>"syntax"			return SYNTAX_TOK;
+<MATH>#				|
 <MATH>\\[A-Za-z]+		|
 <MATH>{name}			|
-<MATH>\\exists_1		|
 <MATH>[+\-*.=<>]+		|
+<MATH>[\300-\337]{UB}		|
+<MATH>[\340-\357]{UB}{2}        | 
+<MATH>[\360-\367]{UB}{3}        | 
+<MATH>[\370-\373]{UB}{4}        | 
+<MATH>[\374-\375]{UB}{5}        |
 <MATH>\\power_1			return lookup(WORD);
 <MATH>\$\"[^"\n]*\"		{ get_string(yyleng); return STRING; }
 <MATH>{number}                  { yylval = (tree) strcpy((char *) 
 					perm_alloc(yyleng+1), yytext);
 				  return NUMBER; }
 <MATH>{decor}			return lookup(DECOR);
-
 <PROSE>^"%%unchecked"		{ skip_mode(); }
 <PROSE>^"%%"[a-z]+		{ dir_mode(); return lookup(0); }
 ^%%				;
@@ -224,6 +223,18 @@ PUBLIC void dump_hash(void)
      printf("%d or more: %d\n", HMAX, oflo);
 }
 #endif
+
+/* lookup -- look name in the symbol table. */
+PRIVATE int lookup_name(char* name, int v)
+{
+     tok p;
+
+     if ((p = enter(name, v)) == NULL)
+	  return BADTOK;
+     
+     yylval = (tree) p;
+     return p->l_value;
+}
 
 /* lookup -- look up yytext in the symbol table. */
 PRIVATE int lookup(int v)
@@ -341,10 +352,6 @@ PRIVATE int binops[] = {
      FATSEMI, PIPE, THEN, ELSE, 0
 };
 
-PRIVATE int envs[] = {
-     BAXDEF, EAXDEF, BGENDEF, EGENDEF, BSCHEMA, ESCHEMA,
-     BZED, EZED, BSYNTAX, ESYNTAX, 0
-};
 
 /* init_sym -- initialize the symbol table */
 PUBLIC void init_sym(void)
@@ -381,11 +388,6 @@ PUBLIC void init_sym(void)
 
      for (n = 0; binops[n] != 0; n++)
 	  tok_type[binops[n] ] = BINARY;
-
-     for (n = 0; envs[n] != 0; n += 2) {
-	  tok_type[envs[n] ] = ENVBEG;
-	  tok_type[envs[n+1] ] = ENVEND;
-     }
 
      prose_mode();
 }

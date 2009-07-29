@@ -33,8 +33,8 @@
 %start		text 
 
 /* Tokens produced by the lexical analyser */
-%token		AND BAXDEF BGENDEF BSCHEMA BSUP BSYNTAX BZED COCOEQ
-%token		CROSS DECOR DEFEQ DUMMY EAXDEF EGENDEF EQEQ EQUIV ESCHEMA
+%token		AND AXDEF_TOK GENDEF_TOK SCHEMA_TOK BSUP SYNTAX_TOK ZED_TOK COCOEQ
+%token		CROSS DECOR DEFEQ DUMMY  EQEQ EQUIV 
 %token		ESUP ESYNTAX EXISTS EXISTS1 EZED FALSITY FATSEMI
 %token		FORALL GREEK HIDE IMPLIES IN INGEN INREL LAMBDA LBAG LDATA
 %token		LET LIMG MU NL NOT NUMBER OR
@@ -131,34 +131,29 @@ para :
   | dir ;
 
 box :
-    BAXDEF { end_tok = EAXDEF; } long.schema 
-				{ $$ = node(1,@1.line,AXDEF,$3); }
-  | BGENDEF { end_tok = EGENDEF; } g.formal.opt long.schema
-				{ $$ = node(2,@1.line,DEFINE,$3,$4); }
-  | BSCHEMA { end_tok = ESCHEMA; } schema.head long.schema
-				{ $$ = node(2,@1.line,SDEF,$3,$4); } ;
-
+    AXDEF_TOK long.schema 
+				{ $$ = node(1,@1.line,AXDEF,$2); }
+  | GENDEF_TOK g.formal.opt long.schema
+				{ $$ = node(2,@1.line,DEFINE,$2,$3); }
+  | SCHEMA_TOK schema.head long.schema
+				{ $$ = node(2,@1.line,SDEF,$2,$3); } ;
 display :
-    display.begin zed.text end  { check_end((tok) $3); } ;
+    display.begin LBRACE zed.text RBRACE ;
 
 zed.text :
     short.para
   | zed.text sep short.para ;
 
-display.begin :	
-    BZED			{ end_tok = EZED; }
-  | BSYNTAX			{ end_tok = ESYNTAX; } ;
-
-end : EAXDEF | EGENDEF | ESCHEMA | EZED | ESYNTAX ;
+display.begin :	ZED_TOK | SYNTAX_TOK;
 
 long.schema :
-    decl.part WHERE axiom.part  { $$ = node(2,@1.line,BODY,$1,$3); }
-  | decl.part end		{ check_end((tok) $2); 
-				  $$ = node(2,@1.line,BODY,$1,nil); } ;
+    LBRACE decl.part RBRACE 
+    WHERE LBRACE axiom.part RBRACE  { $$ = node(2,@1.line,BODY,$2,$6); }
+  | LBRACE decl.part RBRACE	{ $$ = node(2,@1.line,BODY,$2,nil); } ;
 
 axiom.part :
-    axioms end			{ check_end((tok) $2); $$ = $1; }
-  | error end			{ $$ = nil; } ;
+    axioms 			{ $$ = $1; }
+  | error 			{ $$ = nil; } ;
 
 axioms	:	
     pred			{ $$ = list1($1); }
@@ -171,7 +166,7 @@ short.para :
   | error			{ sflag = TRUE; } ;
 
 short.para.ok :	
-    '[' dname.list ']'		{ $$ = node(1,@1.line,GIVEN,$2); }
+   '[' dname.list ']'          { $$ = node(1,@1.line,GIVEN,$2); }
   | schema.lhs DEFEQ sexp	{ $$ = node(2,@2.line,DEFEQ,$1,$3); }
   | def.lhs EQEQ expr		{ $$ = node(2,@2.line,EQEQ,$1,$3); }
   | schema.lhs DEFEQ %prec ERROR
@@ -203,11 +198,8 @@ schema.lhs :
 	{ $$ = schema_head((tok) $1, (tok) $2, $3, @1.line); } ;
 
 schema.head :	
-    '{' future.sname '}' g.formal.opt
-	{ $$ = schema_head((tok) $2, empty, $4, @2.line); }
-  | /* Obsolete form: */
-    '{' future.sname gen.formals '}'
-	{ $$ = schema_head((tok) $2, empty, $3, @2.line); } ;
+    future.sname g.formal.opt
+	{ $$ = schema_head((tok) $1, empty, $2, @2.line); }
 
 future.sname : sname | WORD ;
 
@@ -284,8 +276,8 @@ rename :
 /* DECLARATIONS */
 
 decl.part :
-    easy.decl 			{ $$ = list1($1); }
-  | decl.part sep easy.decl	{ $$ = snoc($1,$3); } ;
+    easy.decl sep		{ $$ = list1($1); }
+  | decl.part easy.decl sep	{ $$ = snoc($1,$2); } ;
 
 decl :
     dname.list ':' expr		{ $$ = node(2,@2.line,DECL,$1,$3); }
@@ -622,7 +614,10 @@ vname :
 
 dname :
     ident %prec SET
-  | op.name ;
+  | op.name 
+  | INOP decor			{ $$ = mk_id($1,$2); } 
+  | INGEN decor 		{ $$ = mk_id($1,$2); } 
+  | INREL decor			{ $$ = mk_id($1,$2); } ;
 
 ident :
     WORD decor			{ $$ = mk_id($1,$2); } ;
@@ -643,7 +638,7 @@ post.sym : POSTOP ;
 
 relation :
     INREL decor			{ $$ = mk_id($1,$2); }
-  | YINREL '{' ident '}'  	{ $$ = $3; } ;
+  | '`' ident '`'  		{ $$ = $3; } ; 
 
 decor :
     DECOR
