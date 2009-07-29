@@ -4,3 +4,9 @@
 *.o
 TAGS
 *.output
+src/absyn.h
+src/fuzz
+src/fuzzlib
+src/minilib
+src/symbol.h
+src/zparse.c

@@ -33,7 +33,7 @@
 #include "fuzz.h"
 
 #ifndef DEFAULT
-#define DEFAULT "/usr/local/lib/fuzzlib"
+#define DEFAULT "/usr/local/fuzz2007/lib/fuzzlib"
 #define ENVNAME "FUZZLIB"
 #endif
 

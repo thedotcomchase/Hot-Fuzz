@@ -36,10 +36,11 @@ FUZZ = zparse.o zscan.o param.o main.o spec.o type.o frame.o dict.o \
 	sched.o pretty.o error.o expr.o alloc.o unify.o schema.o dump.o
 GEN = y.output zparse.c symbol.h absyn.h zscan.c
 
+CFLAGS = -g
 LEX = flex
-LFLAGS = -s
+LFLAGS = -s 
 CC=gcc
-CPP=/lib/cpp
+CPP=/usr/bin/cpp
 DEFINES = -DDEBUG -DANSI -DASSUME
 
 fuzz: $(FUZZ)
@@ -72,7 +73,7 @@ fuzzlib: symdef.x fuzzlib.k fuzzlib.x minilib.x opdef.x symbol.h
 $(FUZZ): fuzz.h proto.h symbol.h absyn.h
 
 %.o : %.c
-	$(CC) $(CFLAGS) -Wall -c $(DEFINES) $<
+	$(CC) $(CFLAGS) -c $(DEFINES) $<
 
 force:
 
