@@ -303,6 +303,40 @@ PRIVATE void trace_def(def d)
      (void) fflush(stdout);
 }
 
+/* Print the name, type and location of the global def. */
+
+PRIVATE void print_cross_ref(def d,int loc)
+{
+     switch (d->d_kind) {
+     case GSET:
+       grind(stdout, "Given set,%i,%d", d->d_name, loc);
+	  break;
+
+     case VAR:
+       grind(stdout, "Variable,%i,%t,%d", d->d_name, d->d_type, loc);
+	  break;
+
+     case GENCONST:
+	  if (d->d_nparams == 0)
+	    grind(stdout, "Abbrev,%i,%t,%d", d->d_name, d->d_type, loc);
+	  else
+               grind(stdout, "Genconst,%i[%d],%t,%d",
+		     d->d_name, d->d_nparams, d->d_type, loc);
+	  break;
+	  
+     case SCHEMA: {
+	  schema s = d->d_schema;
+	  grind(stdout, "Schema,%n,%d", d->d_name, loc);
+	  break;
+     }
+
+     default:
+	  bad_tag("print_cross_ref", d->d_kind);
+     }
+     grind(stdout, "\n\n");
+     (void) fflush(stdout);
+}
+
 /* new_global -- install a definition in the global env. */
 PRIVATE def new_global(def d, int loc)
 {
@@ -315,6 +349,8 @@ PRIVATE def new_global(def d, int loc)
      x->s_glodef = d;
      if (tflag && debugging) 
 	  trace_def(d);
+     if (iflag)
+       print_cross_ref(d, loc);
      return d;
 }
 

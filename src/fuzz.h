@@ -279,7 +279,7 @@ EXTERN def pfun_def, seq_def, bag_def, nat_def;
 EXTERN tok uminus, minus, image, empty, prime, query, pling, Delta, Xi;
 EXTERN sym num, _err_, nat, pfun, seq, bag, iter, X, Y, infop;
 
-EXTERN int aflag, dflag, lflag, pflag, qflag, sflag, tflag, vflag;
+EXTERN int aflag, dflag, lflag, pflag, qflag, sflag, tflag, vflag, iflag;
 EXTERN bool debugging;
 EXTERN int dcode[26];
 #define debflag(c) dcode[c - 'a']

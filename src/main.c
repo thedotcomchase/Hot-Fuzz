@@ -126,6 +126,7 @@ PRIVATE void do_flags(char *flags)
           case 's': sflag++; break;
           case 't': tflag++; break;
           case 'v': vflag++; break;
+          case 'i': iflag++; break;
 
           case 'p':
                if (--argc == 0) usage();
